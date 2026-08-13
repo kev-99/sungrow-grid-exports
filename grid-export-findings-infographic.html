@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Keep this page out of search results. This is a request, not access
+     control — compliant crawlers obey it, but the page stays publicly readable
+     to anyone with the URL. Mirrors the tag on the disconnection-events page. -->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<title>Grid export findings — 12-14 Richmond Ave</title>
+<style>
+/* ============================================================
+   ADJUSTABLE ELEMENTS — everything you may want to change is here.
+
+   --page-max      overall content width (900px reads well on screen,
+                   prints to A4 without reflow surprises)
+   --series-1/2    the two system colours (S1 blue, S2 orange)
+   --flow-in/out   the import / export polarity pair (blue / red)
+   Chart geometry is set per-chart in the SVG viewBox attributes and
+   in the JS DATA blocks near the bottom of the file — the numbers
+   there are the only place the figures appear, so correcting a
+   figure is a one-line change.
+   ============================================================ */
+:root {
+  --page-max: 900px;
+  --surface-0: #f4f3f0;
+  --surface-1: #fcfcfb;
+  --rule: #dedcd6;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #77756f;
+  --series-1: #2a78d6;   /* System 1 */
+  --series-2: #eb6834;   /* System 2 */
+  --flow-in:  #2a78d6;   /* importing */
+  --flow-out: #e34948;   /* exporting */
+  --accent-bg: #eef4fd;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-0: #111110;
+    --surface-1: #1a1a19;
+    --rule: #3a3a37;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #96958c;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --flow-in:  #3987e5;
+    --flow-out: #e66767;
+    --accent-bg: #1d2733;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #111110; --surface-1: #1a1a19; --rule: #3a3a37;
+  --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #96958c;
+  --series-1: #3987e5; --series-2: #d95926;
+  --flow-in: #3987e5; --flow-out: #e66767; --accent-bg: #1d2733;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 32px 20px 56px;
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sheet {
+  max-width: var(--page-max);
+  margin: 0 auto;
+
+  & > * + * { margin-top: 20px; }
+}
+
+.masthead {
+  background: var(--surface-1);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 22px 26px;
+
+  & .masthead__kicker {
+    font-size: 11px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 6px;
+  }
+  & .masthead__title {
+    font-size: 27px;
+    line-height: 1.2;
+    margin: 0 0 8px;
+    font-weight: 650;
+    letter-spacing: -.01em;
+  }
+  & .masthead__sub {
+    margin: 0;
+    color: var(--text-secondary);
+    max-width: 62ch;
+  }
+  & .masthead__meta {
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 26px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+}
+
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 22px 26px;
+  break-inside: avoid;
+
+  & .panel__num {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  & .panel__title {
+    font-size: 19px;
+    line-height: 1.3;
+    margin: 0 0 8px;
+    font-weight: 650;
+    letter-spacing: -.005em;
+  }
+  & .panel__lede {
+    margin: 0 0 18px;
+    color: var(--text-secondary);
+    max-width: 74ch;
+  }
+  & .panel__note {
+    margin: 16px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--text-muted);
+    max-width: 78ch;
+  }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+
+  & .legend__item { display: flex; align-items: center; gap: 7px; }
+  & .legend__swatch {
+    width: 11px; height: 11px; border-radius: 3px; flex: none;
+    box-shadow: 0 0 0 2px var(--surface-1);
+  }
+}
+
+.figure {
+  margin: 0;
+
+  & svg { display: block; width: 100%; height: auto; overflow: visible; }
+  & .figure__caption {
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+}
+
+/* recessive grid + axis, per mark spec */
+.ax { stroke: var(--rule); stroke-width: 1; }
+.gridline { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 4; }
+.tick { fill: var(--text-muted); font-size: 11.5px; }
+.axis-label { fill: var(--text-secondary); font-size: 12px; font-weight: 600; }
+.val { fill: var(--text-primary); font-size: 12px; font-weight: 650; }
+.val--muted { fill: var(--text-secondary); font-weight: 500; }
+.bar { rx: 4; ry: 4; }
+.bar:hover { filter: brightness(1.08); }
+
+.statrow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 2px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+
+  & .statrow__cell {
+    background: var(--surface-1);
+    padding: 16px 18px;
+  }
+  & .statrow__num {
+    font-size: 26px;
+    font-weight: 680;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+  }
+  & .statrow__num--warn { color: var(--flow-out); }
+  & .statrow__lab {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-top: 5px;
+  }
+}
+
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 14px;
+
+  & caption {
+    text-align: left;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    padding-bottom: 7px;
+  }
+  & th, & td {
+    text-align: right;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  & th:first-child, & td:first-child { text-align: left; }
+  & thead th {
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1.5px solid var(--rule);
+  }
+  & tbody tr:last-child td { border-bottom: 0; }
+}
+
+.disclose {
+  margin-top: 14px;
+
+  & summary {
+    cursor: pointer;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    padding: 3px 0;
+  }
+  & summary:hover { color: var(--text-primary); }
+}
+
+.asks {
+  & ol { margin: 0; padding-left: 0; list-style: none; counter-reset: ask; }
+  & li {
+    counter-increment: ask;
+    position: relative;
+    padding: 12px 0 12px 40px;
+    border-bottom: 1px solid var(--rule);
+  }
+  & li:last-child { border-bottom: 0; padding-bottom: 0; }
+  & li::before {
+    content: counter(ask);
+    position: absolute; left: 0; top: 12px;
+    width: 25px; height: 25px; border-radius: 50%;
+    background: var(--accent-bg);
+    color: var(--series-1);
+    font-size: 12.5px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  & .asks__who {
+    display: inline-block;
+    font-size: 10.5px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border: 1px solid var(--rule);
+    border-radius: 20px;
+    padding: 1px 9px;
+    margin-left: 8px;
+    vertical-align: 2px;
+  }
+}
+
+.scope {
+  background: var(--accent-bg);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+
+  & strong { color: var(--text-primary); }
+}
+
+.foot {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding-top: 4px;
+}
+
+.tip {
+  position: fixed;
+  pointer-events: none;
+  z-index: 20;
+  background: var(--text-primary);
+  color: var(--surface-1);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 7px 10px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity .1s;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.tip--on { opacity: 1; }
+
+@media print {
+  body { background: #fff; padding: 0; }
+  .panel, .masthead, .statrow, .scope { break-inside: avoid; }
+  .disclose { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="masthead">
+    <p class="masthead__kicker">12–14 Richmond Ave, Dee Why NSW · 2 × Sungrow SH20T + SBH400 · 2 × Allume SolShare</p>
+    <h1 class="masthead__title">Grid export findings</h1>
+    <p class="masthead__sub">
+      Three findings from the site's own iSolarCloud data. Two were invisible until
+      per-phase meter data was exported, and they affect <strong>both</strong> systems.
+      <strong>This sheet does not cover the System&nbsp;2 disconnection events</strong> —
+      those are documented separately.
+    </p>
+    <div class="masthead__meta">
+      <span>Prepared 11 August 2026</span>
+      <span>Per-phase data: 17 days, 4,896 five-minute intervals per system</span>
+      <span>All figures from portal CSV exports</span>
+    </div>
+  </header>
+
+  <section class="panel">
+    <span class="panel__num">FINDING 1</span>
+    <h2 class="panel__title">Both systems export on one phase while importing on another — and the net meter reading shows nothing</h2>
+    <p class="panel__lede">
+      Across <strong>17 days</strong> of per-phase meter data, one phase is exporting
+      more than 0.5&nbsp;kW while another imports more than 0.5&nbsp;kW on
+      <strong>25.8% of intervals on System 1 and 26.0% on System 2</strong>. The net
+      grid figure — the only figure available before this data was exported — reads
+      close to zero through most of it. Over the 17 days the two system meters between
+      them recorded <strong>489&nbsp;kWh</strong> of per-phase export, of which
+      <strong>319&nbsp;kWh, 65%, appears in no net figure anywhere.</strong>
+    </p>
+
+    <div class="statrow" style="margin-bottom:20px">
+      <div class="statrow__cell">
+        <div class="statrow__num">287.7 <span style="font-size:15px;font-weight:500">kWh</span></div>
+        <div class="statrow__lab">System 1 gross per-phase export, 17 days</div>
+      </div>
+      <div class="statrow__cell">
+        <div class="statrow__num">201.6 <span style="font-size:15px;font-weight:500">kWh</span></div>
+        <div class="statrow__lab">System 2 gross per-phase export, 17 days</div>
+      </div>
+      <div class="statrow__cell">
+        <div class="statrow__num statrow__num--warn">652 + 732</div>
+        <div class="statrow__lab">Intervals where net grid reads ≈&nbsp;0 but a phase is exporting (S1 + S2)</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="legend__item"><span class="legend__swatch" style="background:var(--series-1)"></span>Counted before (net export)</span>
+      <span class="legend__item"><span class="legend__swatch" style="background:var(--series-2)"></span>Hidden inside the net figure</span>
+    </div>
+    <figure class="figure">
+      <svg id="fig-hidden" viewBox="0 0 760 190" role="img"
+           aria-label="Stacked bars: System 1 recorded 287.7 kWh gross per-phase export of which 99.2 kWh appears as net export; System 2 recorded 201.6 kWh gross of which 71.0 kWh appears as net."></svg>
+      <figcaption class="figure__caption">
+        Gross per-phase export over the 17 measured days, split into the part the net
+        grid channel reports and the part it cannot see.
+      </figcaption>
+    </figure>
+
+    <details class="disclose">
+      <summary>Show the figures as a table</summary>
+      <table class="tbl">
+        <caption>Export energy, 15–30 July and 1 August 2026 (kWh). Phase readings beyond ±0.5 kW only.</caption>
+        <thead><tr><th>System</th><th>Gross per-phase</th><th>Reported as net</th><th>Hidden</th><th>Opposite-sign intervals</th></tr></thead>
+        <tbody>
+          <tr><td>System 1</td><td>287.7</td><td>99.2</td><td>188.5</td><td>1,264 of 4,896 (25.8%)</td></tr>
+          <tr><td>System 2</td><td>201.6</td><td>71.0</td><td>130.6</td><td>1,274 of 4,896 (26.0%)</td></tr>
+        </tbody>
+      </table>
+    </details>
+
+    <p class="panel__note">
+      Verification: phase A + B + C reconciles with the net grid channel to a median
+      of 60&nbsp;W — one meter quantum. Both channels are 60&nbsp;W quantised, so they
+      are on the same basis. Magnitude matters: at a 2&nbsp;kW threshold the split
+      appears on <strong>4.1% of System 1 intervals against 0.7% of System 2's</strong>
+      — the large splits are predominantly a System 1 behaviour.
+    </p>
+  </section>
+
+  <section class="panel">
+    <span class="panel__num">FINDING 2</span>
+    <h2 class="panel__title">It happens every day, and phase C — the least-loaded phase on both systems — takes half the export</h2>
+    <p class="panel__lede">
+      The behaviour appears on <strong>every one of the 17 days measured</strong>,
+      between 8% and 37% of intervals. Phase loading is markedly uneven in the same
+      direction on both systems. If the inverter spreads its AC output evenly across
+      the three phases while the load sits mostly on A and B, the lightly loaded phase
+      exports — which is what the data shows, though as a tendency across all three
+      phases rather than a phase-C-only effect.
+    </p>
+
+    <div class="legend">
+      <span class="legend__item"><span class="legend__swatch" style="background:var(--series-1)"></span>System 1</span>
+      <span class="legend__item"><span class="legend__swatch" style="background:var(--series-2)"></span>System 2</span>
+    </div>
+    <figure class="figure" style="margin-bottom:26px">
+      <svg id="fig-daily" viewBox="0 0 760 210" role="img"
+           aria-label="Daily percentage of intervals with phases of opposite sign, 15 July to 1 August. System 1 ranges 10.8 to 36.1 percent, System 2 8.0 to 37.2 percent. Every day shows the behaviour."></svg>
+      <figcaption class="figure__caption">
+        Share of five-minute intervals each day with one phase exporting and another
+        importing, both above 0.5&nbsp;kW. The low point on both systems is 16 July, a
+        heavily overcast day.
+      </figcaption>
+    </figure>
+
+    <figure class="figure">
+      <svg id="fig-phase" viewBox="0 0 760 250" role="img"
+           aria-label="Grouped bars of mean phase power. System 1: A 0.98, B 1.31, C 0.16 kW. System 2: A 1.04, B 0.48, C 0.20 kW. Phase C is lowest on both."></svg>
+      <figcaption class="figure__caption">
+        Mean meter power per phase across all 4,896 measured intervals per system.
+        Positive means importing.
+      </figcaption>
+    </figure>
+
+    <table class="tbl">
+      <caption>Export energy by phase, 17 days (kWh, readings below −0.5 kW)</caption>
+      <thead><tr><th>System</th><th>Phase A</th><th>Phase B</th><th>Phase C</th><th>Share on phase C</th></tr></thead>
+      <tbody>
+        <tr><td>System 1</td><td>79.7</td><td>59.3</td><td><strong>148.7</strong></td><td>52%</td></tr>
+        <tr><td>System 2</td><td>26.6</td><td>66.4</td><td><strong>108.6</strong></td><td>54%</td></tr>
+      </tbody>
+    </table>
+
+    <p class="panel__note">
+      Worked example — <strong>System 1, 27 July 15:20.</strong> 8.64&nbsp;kW leaving
+      on two phases, 8.70&nbsp;kW arriving on the third, at the same instant, with the
+      inverter producing 16.25&nbsp;kW of AC output. Net grid reading:
+      <strong>+0.06&nbsp;kW.</strong>
+    </p>
+
+    <div class="legend" style="margin-top:16px">
+      <span class="legend__item"><span class="legend__swatch" style="background:var(--flow-in)"></span>Importing</span>
+      <span class="legend__item"><span class="legend__swatch" style="background:var(--flow-out)"></span>Exporting</span>
+    </div>
+    <figure class="figure">
+      <svg id="fig-example" viewBox="0 0 760 150" role="img"
+           aria-label="Diverging bars for System 1 at 27 July 15:20: phase A minus 4.20 kW exporting, phase B plus 8.70 kW importing, phase C minus 4.44 kW exporting, net plus 0.06 kW."></svg>
+    </figure>
+  </section>
+
+  <section class="panel">
+    <span class="panel__num">FINDING 3</span>
+    <h2 class="panel__title">System 2 exports from its battery after dark and at very low state of charge</h2>
+    <p class="panel__lede">
+      Over 1 July – 6 August, System 2 exported to the grid with the array producing
+      nothing, and exported while its battery was nearly empty — roughly twice
+      System 1 by count, and more than twice by energy. Each event is short and the
+      energy is bought back within hours. This is raised as a configuration symptom
+      rather than a cost claim: the energy involved is small, but discharging a
+      nearly empty battery to the grid also bears on battery cycling and warranty,
+      and it is behaviour Sungrow's own guidance does not describe.
+    </p>
+
+    <div class="legend">
+      <span class="legend__item"><span class="legend__swatch" style="background:var(--series-1)"></span>System 1</span>
+      <span class="legend__item"><span class="legend__swatch" style="background:var(--series-2)"></span>System 2</span>
+    </div>
+    <figure class="figure">
+      <svg id="fig-battery" viewBox="0 0 760 200" role="img"
+           aria-label="Grouped bars. Export with no solar: System 2 9.24 kWh, System 1 5.48 kWh. Export below 30 percent state of charge: System 2 11.96 kWh, System 1 5.42 kWh."></svg>
+      <figcaption class="figure__caption">
+        1 July – 6 August 2026, 10,645 valid 5-minute intervals per system.
+        Readings below 120&nbsp;W excluded (the meter quantum is 60&nbsp;W).
+      </figcaption>
+    </figure>
+
+    <p class="panel__note" style="border-top:none;padding-top:0;margin-top:18px">
+      <strong>The clearest single case — 16 July, 15:45 to 15:55.</strong>
+      Array producing about 1&nbsp;kW. Battery at 13% state of charge. The inverter
+      delivered <strong>10.4&nbsp;kW then 16.1&nbsp;kW</strong> of AC output, exporting
+      9.8&nbsp;kW and then 7.6&nbsp;kW of it — then reversed to
+      <strong>absorbing 16.1&nbsp;kW</strong> five minutes later. State of charge fell
+      from 19% to the 6% floor within the hour. <strong>Meter voltage was normal
+      throughout (246.6–247.9&nbsp;V).</strong> No fault was logged and no notification
+      was issued.
+    </p>
+  </section>
+
+  <section class="scope">
+    <strong>How these figures were verified, and one thing worth knowing.</strong>
+    Phase&nbsp;A&nbsp;+&nbsp;B&nbsp;+&nbsp;C reconciles with the net grid channel to a
+    median of 60&nbsp;W — one meter quantum — so the two are on the same basis. Grid
+    voltage was normal at every event listed here, so none of this is a supply
+    disturbance. These figures are measured at each system's own energy meter; what
+    crosses the site boundary depends on how the two systems' simultaneous flows
+    combine, and on how the retail meter totals the phases (question&nbsp;4).
+    <strong>And the inverter's own “Feed-in power” channel — a net figure, behaving
+    as one — does not register per-phase export:</strong> of the 652 System&nbsp;1 and 732
+    System&nbsp;2 intervals with real per-phase export while the net reads ≈&nbsp;0, it
+    reports export in <strong>11</strong> and <strong>10</strong> respectively. This
+    behaviour will therefore not appear in the inverter's feed-in energy registers, or
+    in any iSolarCloud export figure derived from them.
+  </section>
+
+  <section class="panel asks">
+    <span class="panel__num">WHAT WE ARE ASKING</span>
+    <h2 class="panel__title">Seven questions</h2>
+    <ol>
+      <li>
+        Is <strong>“Feed-In Limitation for Each Phase”</strong> enabled on either
+        inverter, and at what value? We understand it is visible only through Local
+        Access in the app, not the WiNet interface.
+        <span class="asks__who">Sungrow · Installer</span>
+      </li>
+      <li>
+        Does the SH20T balance its AC output evenly across the three phases, or match
+        each phase to its own load? If evenly, what is the intended behaviour on a
+        site with deliberately uneven phase loading?
+        <span class="asks__who">Sungrow</span>
+      </li>
+      <li>
+        <strong>Why does phase C carry roughly a sixth of the load of phases A and B</strong>
+        on both systems? Is the phase allocation across the switchboard and the two
+        SolShare units as designed?
+        <span class="asks__who">Installer</span>
+      </li>
+      <li>
+        <strong>Is the site metered net across the three phases, or per phase?</strong>
+        This determines whether Finding 1 is a cost or a compliance matter, and we
+        cannot size it until we know.
+        <span class="asks__who">Installer</span>
+      </li>
+      <li>
+        Sungrow's own guidance states that a correctly installed and configured system
+        does not discharge the battery to the grid, and describes only momentary
+        transients. <strong>How is a ~10-minute discharge of 10–16&nbsp;kW from a
+        battery at 11–13% state of charge, followed by a full reversal, reconciled
+        with that?</strong>
+        <span class="asks__who">Sungrow</span>
+      </li>
+      <li>
+        Please confirm the <strong>energy meter CT polarity and phase assignment</strong>
+        on both systems, using Sungrow's documented test — with PV off, apply a known
+        load one phase at a time and confirm the portal shows import, not export.
+        <span class="asks__who">Installer</span>
+      </li>
+      <li>
+        Given that the inverter's own Feed-in power channel does not register
+        per-phase export, <strong>how would Sungrow expect an owner to detect this
+        behaviour from the portal at all?</strong>
+        <span class="asks__who">Sungrow</span>
+      </li>
+    </ol>
+  </section>
+
+  <section class="panel">
+    <span class="panel__num">SCOPE AND LIMITS</span>
+    <h2 class="panel__title">What this sheet does not claim</h2>
+    <p class="panel__lede" style="margin-bottom:0">
+      Findings 1 and 2 are measured over <strong>17 consecutive midwinter days</strong>,
+      not a season — they should be re-measured in spring before being treated as
+      annual figures. They affect <strong>both systems roughly equally</strong> by
+      count, and are <strong>larger on System 1</strong> by energy and at higher
+      magnitudes, so they are a site-wide characteristic and are <strong>not</strong>
+      presented as a System 2 defect. No cost figure is given: that depends on whether
+      the retail meter nets across phases or bills per phase, which is question 4.
+      Most Australian polyphase interval meters do sum the three phases algebraically;
+      if this site's meter does too, the billing impact of Finding 1 is small, and its
+      significance lies instead in per-phase export limits (Ausgrid's limits apply per
+      phase), voltage on the lightly loaded phase, and the fact that no figure
+      available to the owner reflects the true flows. An
+      earlier three-day version of this sheet quoted 21% / 16% and a 59–70% phase-C
+      share; those figures are superseded by the ones here. Nothing identifies a root
+      cause — these are measurements and questions.
+    </p>
+  </section>
+
+  <p class="foot">
+    12–14 Richmond Ave, Dee Why NSW · Prepared for site attendance, 14 August 2026 ·
+    Source data: iSolarCloud CSV exports, retained and available on request
+  </p>
+</div>
+
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   ADJUSTABLE: every figure the charts draw lives in these three
+   DATA objects. Change a number here and the chart redraws — the
+   numbers are not duplicated anywhere in the drawing code.
+   ============================================================ */
+const DATA_HIDDEN = {
+  unit: 'kWh',
+  rows: [
+    { label: 'System 1', net: 99.2, hidden: 188.5 },
+    { label: 'System 2', net: 71.0, hidden: 130.6 }
+  ]
+};
+
+/* Daily share of intervals with phases of opposite sign (>0.5 kW each way).
+   ADJUSTABLE: add rows as more days are collected — the chart rescales itself. */
+const DATA_DAILY = {
+  unit: '%',
+  days: [
+    ['15 Jul', 29.9, 21.9], ['16 Jul', 10.8,  8.0], ['17 Jul', 20.1, 28.5],
+    ['18 Jul', 28.1, 25.3], ['19 Jul', 22.9, 16.0], ['20 Jul', 29.2, 35.1],
+    ['21 Jul', 30.2, 37.2], ['22 Jul', 22.2, 27.4], ['23 Jul', 24.3, 32.3],
+    ['24 Jul', 24.7, 26.7], ['25 Jul', 24.0, 31.9], ['26 Jul', 35.4, 34.0],
+    ['27 Jul', 26.0, 26.7], ['28 Jul', 26.0, 19.4], ['29 Jul', 26.4, 33.3],
+    ['30 Jul', 36.1, 20.1], [' 1 Aug', 22.6, 18.4]
+  ]
+};
+
+const DATA_PHASE = {
+  unit: 'kW',
+  groups: ['Phase A', 'Phase B', 'Phase C'],
+  series: [
+    { name: 'System 1', color: 'var(--series-1)', values: [0.98, 1.31, 0.16] },
+    { name: 'System 2', color: 'var(--series-2)', values: [1.04, 0.48, 0.20] }
+  ]
+};
+
+const DATA_EXAMPLE = {
+  unit: 'kW',
+  title: 'System 1 · 27 July 15:20',
+  bars: [
+    { label: 'Phase A', v: -4.20 },
+    { label: 'Phase B', v:  8.70 },
+    { label: 'Phase C', v: -4.44 }
+  ],
+  net: 0.06
+};
+
+const DATA_BATTERY = {
+  unit: 'kWh',
+  groups: ['Export with no solar (PV = 0)', 'Export below 30% state of charge'],
+  series: [
+    { name: 'System 1', color: 'var(--series-1)', values: [5.48, 5.42], counts: [35, 38] },
+    { name: 'System 2', color: 'var(--series-2)', values: [9.24, 11.96], counts: [72, 62] }
+  ]
+};
+
+/* ---------- tiny SVG helpers (no libraries) ---------- */
+const NS = 'http://www.w3.org/2000/svg';
+const el = (n, a = {}) => {
+  const e = document.createElementNS(NS, n);
+  for (const k in a) e.setAttribute(k, a[k]);
+  return e;
+};
+const txt = (x, y, s, cls, anchor = 'start') => {
+  const t = el('text', { x, y, class: cls, 'text-anchor': anchor });
+  t.textContent = s;
+  return t;
+};
+
+const tip = document.getElementById('tip');
+function hookTip(node, html) {
+  node.addEventListener('pointerenter', e => {
+    tip.innerHTML = html;
+    tip.classList.add('tip--on');
+  });
+  node.addEventListener('pointermove', e => {
+    tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + 'px';
+    tip.style.top  = (e.clientY - tip.offsetHeight - 12) + 'px';
+  });
+  node.addEventListener('pointerleave', () => tip.classList.remove('tip--on'));
+}
+
+/* ---------- Figure 1: stacked horizontal bars ---------- */
+(function () {
+  const svg = document.getElementById('fig-hidden');
+  const W = 760, LEFT = 92, RIGHT = 96, BAR = 34, GAP = 34, TOP = 26;
+  const max = Math.max(...DATA_HIDDEN.rows.map(r => r.net + r.hidden));
+  const span = W - LEFT - RIGHT;
+  const sx = v => v / max * span;
+
+  DATA_HIDDEN.rows.forEach((r, i) => {
+    const y = TOP + i * (BAR + GAP);
+    svg.appendChild(txt(LEFT - 12, y + BAR / 2 + 4, r.label, 'axis-label', 'end'));
+
+    // segment 1 — net (reported)
+    const w1 = sx(r.net);
+    const b1 = el('rect', { x: LEFT, y, width: Math.max(w1, 2), height: BAR, class: 'bar', fill: 'var(--series-1)' });
+    svg.appendChild(b1);
+    hookTip(b1, `<b>${r.label}</b><br>Reported as net export: ${r.net.toFixed(2)} kWh`);
+
+    // 2px surface gap between adjacent fills, per mark spec
+    const w2 = sx(r.hidden);
+    const b2 = el('rect', { x: LEFT + w1 + 2, y, width: Math.max(w2 - 2, 2), height: BAR, class: 'bar', fill: 'var(--series-2)' });
+    svg.appendChild(b2);
+    hookTip(b2, `<b>${r.label}</b><br>Hidden inside the net figure: ${r.hidden.toFixed(2)} kWh`);
+
+    // direct label at the data end
+    svg.appendChild(txt(LEFT + sx(r.net + r.hidden) + 10, y + BAR / 2 + 4,
+      (r.net + r.hidden).toFixed(1) + ' kWh gross', 'val'));
+
+    // in-bar label for the hidden share when it fits
+    if (w2 > 120) {
+      const t = txt(LEFT + w1 + 12, y + BAR / 2 + 4, r.hidden.toFixed(1) + ' kWh unseen', 'val');
+      t.setAttribute('fill', '#fff');
+      svg.appendChild(t);
+    }
+  });
+
+  const baseY = TOP + DATA_HIDDEN.rows.length * (BAR + GAP) - GAP + 14;
+  svg.appendChild(el('line', { x1: LEFT, y1: baseY, x2: LEFT + span, y2: baseY, class: 'ax' }));
+  [0, 100, 200, 288].forEach(v => {
+    svg.appendChild(txt(LEFT + sx(v), baseY + 16, v + (v === 288 ? ' kWh' : ''), 'tick', 'middle'));
+  });
+})();
+
+/* ---------- Figure 2: grouped vertical bars ---------- */
+function groupedBars(svgId, DATA, opts) {
+  const svg = document.getElementById(svgId);
+  const W = 760, H = opts.h, LEFT = 58, RIGHT = 18, TOP = 16, BOT = opts.bot;
+  const plotW = W - LEFT - RIGHT, plotH = H - TOP - BOT;
+  const max = opts.max;
+  const sy = v => plotH - (v / max * plotH);
+
+  // recessive gridlines
+  opts.ticks.forEach(v => {
+    const y = TOP + sy(v);
+    svg.appendChild(el('line', { x1: LEFT, y1: y, x2: LEFT + plotW, y2: y, class: 'gridline' }));
+    const lab = Number.isInteger(v) ? String(v) : v.toFixed(1);
+    svg.appendChild(txt(LEFT - 10, y + 4, lab + (v === opts.ticks[opts.ticks.length - 1] ? ' ' + DATA.unit : ''), 'tick', 'end'));
+  });
+
+  const nG = DATA.groups.length, nS = DATA.series.length;
+  const gW = plotW / nG, bW = Math.min(opts.barW, (gW - 40) / nS);
+
+  DATA.groups.forEach((g, gi) => {
+    const gx = LEFT + gi * gW + gW / 2;
+    DATA.series.forEach((s, si) => {
+      const v = s.values[gi];
+      // 2px gap between adjacent bars, per mark spec
+      const x = gx - (nS * bW + 2 * (nS - 1)) / 2 + si * (bW + 2);
+      const y = TOP + sy(v);
+      const b = el('rect', { x, y, width: bW, height: plotH - sy(v), class: 'bar', fill: s.color });
+      svg.appendChild(b);
+      const extra = s.counts ? `<br>${s.counts[gi]} intervals` : '';
+      hookTip(b, `<b>${s.name} · ${g}</b><br>${v.toFixed(2)} ${DATA.unit}${extra}`);
+      svg.appendChild(txt(x + bW / 2, y - 7, v.toFixed(2), 'val', 'middle'));
+    });
+    // group label, wrapped on a slash if long
+    const parts = g.split(' (');
+    svg.appendChild(txt(gx, TOP + plotH + 22, parts[0], 'axis-label', 'middle'));
+    if (parts[1]) svg.appendChild(txt(gx, TOP + plotH + 39, '(' + parts[1], 'tick', 'middle'));
+  });
+
+  svg.appendChild(el('line', { x1: LEFT, y1: TOP + plotH, x2: LEFT + plotW, y2: TOP + plotH, class: 'ax' }));
+}
+
+groupedBars('fig-phase', DATA_PHASE, { h: 250, bot: 62, max: 1.5, ticks: [0, 0.5, 1, 1.5], barW: 54 });
+groupedBars('fig-battery', DATA_BATTERY, { h: 200, bot: 66, max: 12, ticks: [0, 4, 8, 12], barW: 54 });
+
+/* ---------- Figure: daily rate, two lines over time ---------- */
+(function () {
+  const svg = document.getElementById('fig-daily');
+  const W = 760, H = 210, LEFT = 46, RIGHT = 62, TOP = 14, BOT = 40;
+  const plotW = W - LEFT - RIGHT, plotH = H - TOP - BOT;
+  const MAX = 40;                          // ADJUSTABLE: y-axis top, in %
+  const n = DATA_DAILY.days.length;
+  const px = i => LEFT + (n === 1 ? plotW / 2 : i * plotW / (n - 1));
+  const py = v => TOP + plotH - (v / MAX * plotH);
+
+  [0, 10, 20, 30, 40].forEach(v => {
+    const y = py(v);
+    svg.appendChild(el('line', { x1: LEFT, y1: y, x2: LEFT + plotW, y2: y, class: 'gridline' }));
+    svg.appendChild(txt(LEFT - 9, y + 4, v + (v === 40 ? '%' : ''), 'tick', 'end'));
+  });
+
+  [[1, 'var(--series-1)', 'System 1'], [2, 'var(--series-2)', 'System 2']].forEach(([idx, col, name]) => {
+    const pts = DATA_DAILY.days.map((d, i) => [px(i), py(d[idx])]);
+    svg.appendChild(el('polyline', {
+      points: pts.map(p => p.join(',')).join(' '),
+      fill: 'none', stroke: col, 'stroke-width': 2,
+      'stroke-linejoin': 'round', 'stroke-linecap': 'round'
+    }));
+    pts.forEach((p, i) => {
+      // 2px surface ring so overlapping markers stay legible
+      const c = el('circle', { cx: p[0], cy: p[1], r: 4, fill: col,
+                               stroke: 'var(--surface-1)', 'stroke-width': 2 });
+      svg.appendChild(c);
+      hookTip(c, `<b>${name} · ${DATA_DAILY.days[i][0]}</b><br>${DATA_DAILY.days[i][idx].toFixed(1)}% of intervals`);
+    });
+    // direct label at the series end, so identity is never colour-alone
+    const last = pts[pts.length - 1];
+    const t = txt(last[0] + 10, last[1] + 4, name, 'val--muted');
+    t.setAttribute('fill', col);
+    svg.appendChild(t);
+  });
+
+  svg.appendChild(el('line', { x1: LEFT, y1: TOP + plotH, x2: LEFT + plotW, y2: TOP + plotH, class: 'ax' }));
+  // label every third day so the axis never collides
+  DATA_DAILY.days.forEach((d, i) => {
+    if (i % 3 === 0 || i === n - 1) {
+      svg.appendChild(txt(px(i), TOP + plotH + 20, d[0].trim(), 'tick', 'middle'));
+    }
+  });
+})();
+
+/* ---------- Figure 3: diverging bars around a zero axis ---------- */
+(function () {
+  const svg = document.getElementById('fig-example');
+  const W = 760, LEFT = 84, TOP = 18, BAR = 24, GAP = 12;
+  const zero = LEFT + 220;                 // ADJUSTABLE: x of the zero line
+  const scale = 31;                        // ADJUSTABLE: px per kW
+  const maxRow = DATA_EXAMPLE.bars.length;
+
+  DATA_EXAMPLE.bars.forEach((b, i) => {
+    const y = TOP + i * (BAR + GAP);
+    svg.appendChild(txt(LEFT - 12, y + BAR / 2 + 4, b.label, 'axis-label', 'end'));
+    const w = Math.abs(b.v) * scale;
+    const x = b.v >= 0 ? zero : zero - w;
+    const r = el('rect', { x, y, width: Math.max(w, 2), height: BAR, class: 'bar',
+                           fill: b.v >= 0 ? 'var(--flow-in)' : 'var(--flow-out)' });
+    svg.appendChild(r);
+    hookTip(r, `<b>${b.label}</b><br>${b.v > 0 ? 'Importing' : 'Exporting'} ${Math.abs(b.v).toFixed(2)} kW`);
+    // label inside the bar when it is wide enough, outside when it is not,
+    // so a long negative bar never pushes its label off the left edge
+    const label = (b.v > 0 ? '+' : '') + b.v.toFixed(2) + ' kW';
+    let t;
+    if (b.v < 0 && w > 70) {
+      t = txt(x + 9, y + BAR / 2 + 4, label, 'val', 'start');
+      t.setAttribute('fill', '#fff');
+    } else {
+      const lx = b.v >= 0 ? x + w + 9 : x - 9;
+      t = txt(lx, y + BAR / 2 + 4, label, 'val', b.v >= 0 ? 'start' : 'end');
+    }
+    svg.appendChild(t);
+  });
+
+  const botY = TOP + maxRow * (BAR + GAP) + 4;
+  svg.appendChild(el('line', { x1: zero, y1: TOP - 6, x2: zero, y2: botY, class: 'ax' }));
+  svg.appendChild(txt(zero, botY + 16, '0', 'tick', 'middle'));
+
+  // the punchline: the net figure
+  const nY = botY + 34;
+  svg.appendChild(txt(LEFT - 12, nY, 'Net grid', 'axis-label', 'end'));
+  const nt = txt(zero + 9, nY, DATA_EXAMPLE.net.toFixed(2) + ' kW  —  the only figure previously available', 'val');
+  svg.appendChild(nt);
+  svg.appendChild(el('rect', { x: zero, y: nY - 11, width: 4, height: 14, class: 'bar', fill: 'var(--text-muted)' }));
+})();
+</script>
+</body>
+</html>
